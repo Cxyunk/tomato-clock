@@ -1631,10 +1631,10 @@ window.addEventListener('beforeunload', () => {
   }
 });
 
-// 心跳
-setInterval(() => {
-  fetch('/api/heartbeat').catch(() => {});
-}, 20000);
+// 页面真正关闭时通知服务器（pagehide 比 beforeunload 更可靠）
+window.addEventListener('pagehide', () => {
+  navigator.sendBeacon('/api/shutdown');
+});
 
 // 回车创建
 document.getElementById('taskNameInput').addEventListener('keydown', (e) => {

@@ -39,18 +39,27 @@ function writeJSON(filepath, data) {
   fs.writeFileSync(filepath, JSON.stringify(data, null, 2), 'utf-8');
 }
 
-let lastHeartbeat = Date.now();
-const HEARTBEAT_TIMEOUT = 30000; // 30 秒无心跳则自动关闭
+// ===== 延迟关机机制 =====
+// 浏览器关闭时通过 pagehide 发送关闭信号，服务器延迟 3 秒关机。
+// 如果期间收到任何新请求（说明是刷新页面），则取消关机。
+let shutdownTimer = null;
+const SHUTDOWN_DELAY = 3000; // 3 秒延迟
 
-// 心跳检查定时器
-const heartbeatCheck = setInterval(() => {
-  if (Date.now() - lastHeartbeat > HEARTBEAT_TIMEOUT) {
-    console.log('\n🔌 浏览器已关闭（30秒无心跳），服务自动停止...');
-    clearInterval(heartbeatCheck);
+function scheduleShutdown() {
+  if (shutdownTimer) clearTimeout(shutdownTimer);
+  shutdownTimer = setTimeout(() => {
+    console.log('\n🔌 浏览器已关闭，服务自动停止...');
     server.close();
     process.exit(0);
+  }, SHUTDOWN_DELAY);
+}
+
+function cancelShutdown() {
+  if (shutdownTimer) {
+    clearTimeout(shutdownTimer);
+    shutdownTimer = null;
   }
-}, 5000);
+}
 
 const server = http.createServer((req, res) => {
   // CORS
@@ -68,17 +77,19 @@ const server = http.createServer((req, res) => {
 
   // === API 路由 ===
 
-  // GET /api/heartbeat — 心跳
-  if (req.method === 'GET' && url.pathname === '/api/heartbeat') {
-    lastHeartbeat = Date.now();
+  // POST /api/shutdown — 浏览器关闭时通知服务器
+  if (req.method === 'POST' && url.pathname === '/api/shutdown') {
+    scheduleShutdown();
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify({ ok: true }));
     return;
   }
 
+  // 其他任何请求到达 = 说明浏览器还活着，取消关机
+  cancelShutdown();
+
   // GET /api/data — 获取全部数据
   if (req.method === 'GET' && url.pathname === '/api/data') {
-    lastHeartbeat = Date.now();
     const data = readJSON(DATA_FILE);
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify(data));
@@ -87,7 +98,6 @@ const server = http.createServer((req, res) => {
 
   // PUT /api/data — 全量保存数据
   if (req.method === 'PUT' && url.pathname === '/api/data') {
-    lastHeartbeat = Date.now();
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
@@ -106,7 +116,6 @@ const server = http.createServer((req, res) => {
 
   // POST /api/data — 追加记录（beforeunload 用）
   if (req.method === 'POST' && url.pathname === '/api/data') {
-    lastHeartbeat = Date.now();
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
@@ -181,6 +190,6 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
   console.log(`🍅 番茄钟服务已启动 → http://localhost:${PORT}`);
   console.log(`📁 数据存储在: ${DATA_FILE}`);
-  console.log(`⏱  关闭浏览器后 30 秒自动停止服务`);
+  console.log(`🔌 关闭浏览器后自动停止服务`);
   console.log(`   按 Ctrl+C 手动停止`);
 });
