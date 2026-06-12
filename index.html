@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍅 番茄钟 - 任务计时器</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  min-height: 100vh;
+  color: #e0e0e0;
+  padding: 20px;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.left-panel {
+  flex: 1;
+  min-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 24px;
+  backdrop-filter: blur(10px);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #a0a0b8;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.header h1 { font-size: 24px; font-weight: 700; color: #ff6b6b; }
+.header h1 span { font-size: 28px; margin-right: 4px; }
+
+/* ===== 输入 & 按钮 ===== */
+.create-task-row {
+  display: flex;
+  gap: 10px;
+}
+.create-task-row input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.create-task-row input:focus { border-color: #ff6b6b; }
+.create-task-row input::placeholder { color: #555; }
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.btn:active { transform: scale(0.96); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+.btn-create { background: rgba(255,255,255,0.12); color: #e0e0e0; }
+.btn-create:hover { background: rgba(255,255,255,0.22); }
+
+.btn-start-task {
+  background: #ff6b6b; color: #fff;
+  padding: 6px 16px; font-size: 13px;
+}
+.btn-start-task:hover { background: #ff5252; box-shadow: 0 4px 16px rgba(255,107,107,0.4); }
+
+.btn-end {
+  background: #ef5350; color: #fff;
+  padding: 12px 32px; font-size: 16px;
+}
+.btn-end:hover { background: #e53935; box-shadow: 0 4px 20px rgba(239,83,80,0.5); }
+
+.btn-fullscreen {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #aaa;
+  width: 34px; height: 34px; border-radius: 8px;
+  cursor: pointer; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.btn-fullscreen:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+.btn-delete {
+  background: none; border: none;
+  color: #555; cursor: pointer;
+  font-size: 16px; padding: 4px 8px; border-radius: 6px;
+  transition: all 0.2s;
+}
+.btn-delete:hover { color: #ff5252; background: rgba(255,82,82,0.12); }
+
+/* ===== 任务池 ===== */
+.task-pool-list {
+  max-height: 260px;
+  overflow-y: auto;
+  margin-top: 14px;
+}
+.task-pool-list::-webkit-scrollbar { width: 4px; }
+.task-pool-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+
+.task-pool-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  margin-bottom: 6px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: all 0.2s;
+}
+.task-pool-item:hover { background: rgba(255,255,255,0.06); }
+.task-pool-item.active {
+  border-color: currentColor;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, currentColor 15%, transparent);
+}
+
+.task-pool-color {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 10px;
+}
+
+.task-pool-name { font-size: 15px; font-weight: 500; flex: 1; }
+
+.task-pool-right { display: flex; align-items: center; gap: 8px; }
+
+.task-pool-status {
+  font-size: 12px; padding: 3px 10px; border-radius: 20px; font-weight: 600;
+}
+.status-pending { color: #888; background: rgba(255,255,255,0.06); }
+.status-running { color: #ff6b6b; background: rgba(255,107,107,0.15); animation: pulse 2s infinite; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* ===== 计时器 ===== */
+.timer-section { text-align: center; padding: 8px 0; }
+.timer-label { font-size: 14px; color: #888; margin-bottom: 6px; }
+.timer-active-task {
+  font-size: 18px; font-weight: 600;
+  min-height: 27px; margin-bottom: 4px;
+}
+
+.timer-display {
+  font-size: 72px;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  font-family: "SF Mono", "Cascadia Code", "Consolas", monospace;
+  color: #fff;
+  letter-spacing: 4px;
+  margin: 8px 0 16px;
+  text-shadow: 0 0 40px rgba(255,107,107,0.3);
+  min-height: 86px;
+  line-height: 1.2;
+}
+
+/* ===== 计时器全屏 ===== */
+#timerCard.fullscreen {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 9999;
+  border-radius: 0;
+  border: none;
+  background: rgba(10,10,20,0.97);
+  backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+#timerCard.fullscreen .card-header { display: none; }
+#timerCard.fullscreen .timer-section { width: 100%; }
+#timerCard.fullscreen .timer-display {
+  font-size: clamp(80px, 15vw, 160px);
+  margin: 20px 0 30px;
+}
+#timerCard.fullscreen .timer-active-task {
+  font-size: clamp(20px, 4vw, 32px);
+}
+#timerCard.fullscreen .timer-label {
+  font-size: 16px;
+}
+#timerCard.fullscreen .btn-end {
+  padding: 16px 48px;
+  font-size: 20px;
+}
+
+.btn-exit-fullscreen {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #aaa;
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 20px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.btn-exit-fullscreen:hover { background: rgba(255,255,255,0.15); color: #fff; }
+#timerCard.fullscreen .btn-exit-fullscreen { display: flex; }
+
+/* ===== 圆环图 ===== */
+.ring-chart-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 8px 0 12px;
+  flex-wrap: wrap;
+}
+
+.ring-chart-svg {
+  flex-shrink: 0;
+}
+
+.ring-center-text {
+  font-size: 14px;
+  fill: #888;
+}
+.ring-center-value {
+  font-size: 22px;
+  font-weight: 700;
+  fill: #fff;
+}
+
+.ring-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 140px;
+}
+
+.ring-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #ccc;
+}
+
+.ring-legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.ring-legend-name { flex: 1; }
+.ring-legend-time { color: #888; font-size: 12px; white-space: nowrap; }
+
+.ring-empty {
+  text-align: center;
+  color: #555;
+  padding: 20px 0;
+  font-size: 14px;
+}
+
+/* ===== 记录列表 ===== */
+.records-list {
+  max-height: 220px;
+  overflow-y: auto;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding-top: 8px;
+  margin-top: 8px;
+}
+.records-list::-webkit-scrollbar { width: 4px; }
+.records-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+
+.record-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.record-item:last-child { border-bottom: none; }
+.record-name { font-size: 14px; font-weight: 500; }
+.record-meta { font-size: 11px; color: #777; margin-top: 2px; }
+.record-duration {
+  font-size: 16px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-family: "SF Mono", "Cascadia Code", "Consolas", monospace;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  margin-top: 8px;
+}
+.summary-item { text-align: center; }
+.summary-value { font-size: 20px; font-weight: 700; color: #ff6b6b; }
+.summary-label { font-size: 11px; color: #777; margin-top: 2px; }
+
+.empty-state { text-align: center; color: #555; padding: 28px 0; font-size: 14px; }
+
+/* ===== 右侧面板 ===== */
+.right-panel { width: 370px; flex-shrink: 0; }
+
+.calendar-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.calendar-month { font-size: 17px; font-weight: 600; color: #fff; }
+.calendar-nav { display: flex; gap: 4px; }
+.calendar-nav button {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #bbb; width: 32px; height: 32px;
+  border-radius: 8px; cursor: pointer; font-size: 15px;
+  transition: all 0.2s;
+}
+.calendar-nav button:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+.calendar-weekdays {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  text-align: center; margin-bottom: 6px;
+}
+.calendar-weekdays span { font-size: 11px; color: #777; font-weight: 600; padding: 6px 0; }
+
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  border-radius: 9px; cursor: pointer;
+  font-size: 13px; color: #ccc;
+  transition: all 0.15s; position: relative;
+}
+.calendar-day:hover { background: rgba(255,255,255,0.07); }
+.calendar-day.other-month { color: #3a3a3a; cursor: default; }
+.calendar-day.today { border: 2px solid #ff6b6b; font-weight: 700; color: #ff6b6b; }
+.calendar-day.selected { background: rgba(255,107,107,0.2); color: #ff6b6b; font-weight: 600; }
+.calendar-day.has-records::after {
+  content: ''; width: 5px; height: 5px;
+  border-radius: 50%; background: #ff6b6b;
+  position: absolute; bottom: 3px;
+}
+
+.day-detail {
+  margin-top: 14px; padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+.day-detail h3 { font-size: 13px; color: #999; margin-bottom: 10px; }
+.day-detail-tasks { max-height: 180px; overflow-y: auto; }
+.day-detail-tasks .record-item { padding: 8px 0; }
+.day-detail-total { text-align: center; padding-top: 10px; font-size: 13px; color: #777; }
+.day-detail-total strong { color: #ff6b6b; font-size: 17px; }
+
+.month-stats {
+  display: flex; justify-content: space-around;
+  padding-top: 14px; margin-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+.month-stat-item { text-align: center; }
+.month-stat-value { font-size: 18px; font-weight: 700; color: #ff6b6b; }
+.month-stat-label { font-size: 11px; color: #777; margin-top: 2px; }
+
+.month-task-breakdown {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+.month-task-breakdown h3 {
+  font-size: 13px; color: #999; margin-bottom: 10px;
+}
+.month-task-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.month-task-row-name {
+  min-width: 65px;
+  flex-shrink: 0;
+  color: #ccc;
+  font-size: 13px;
+}
+.month-task-row-time {
+  min-width: 62px;
+  text-align: right;
+  flex-shrink: 0;
+  color: #888;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-family: "SF Mono", "Cascadia Code", "Consolas", monospace;
+}
+.month-task-bar-wrap {
+  flex: 1;
+  height: 8px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px;
+  overflow: hidden;
+  min-width: 40px;
+}
+.month-task-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 800px) {
+  .container { flex-direction: column; }
+  .right-panel { width: 100%; }
+  .timer-display { font-size: 54px; }
+  .ring-chart-wrap { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- ==================== 左侧面板 ==================== -->
+  <div class="left-panel">
+    <div class="header"><h1><span>🍅</span>番茄钟</h1></div>
+
+    <!-- 1. 任务列表（持久化） -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📝 任务列表</span>
+      </div>
+      <div class="create-task-row">
+        <input type="text" id="taskNameInput" placeholder="输入任务名称，回车创建..." maxlength="50" autocomplete="off">
+        <button class="btn btn-create" onclick="createTask()">＋ 创建</button>
+      </div>
+      <div class="task-pool-list" id="taskPoolList" style="margin-top:14px;">
+        <div class="empty-state">还没有任务，创建一个吧 📝</div>
+      </div>
+    </div>
+
+    <!-- 2. 计时器 -->
+    <div class="card" id="timerCard">
+      <div class="card-header">
+        <span class="card-title">⏱ 计时器</span>
+        <button class="btn-fullscreen" onclick="toggleFullscreen()" title="全屏">⛶</button>
+      </div>
+      <button class="btn-exit-fullscreen" onclick="toggleFullscreen()" title="退出全屏">✕</button>
+      <div class="timer-section">
+        <div class="timer-label" id="timerLabel">选择一个任务开始计时</div>
+        <div class="timer-active-task" id="timerActiveTask"></div>
+        <div class="timer-display" id="timerDisplay">00:00:00</div>
+        <button class="btn btn-end" id="btnEnd" onclick="endTimer()" disabled>⏹ 结束计时</button>
+      </div>
+    </div>
+
+    <!-- 3. 今日记录 + 圆环图 -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📊 今日记录</span>
+      </div>
+      <div id="ringChartArea"></div>
+      <div class="summary-row">
+        <div class="summary-item">
+          <div class="summary-value" id="todayTaskCount">0</div>
+          <div class="summary-label">完成次数</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-value" id="todayTotalTime">0m</div>
+          <div class="summary-label">总时长</div>
+        </div>
+      </div>
+      <div class="records-list" id="recordsList"></div>
+    </div>
+  </div>
+
+  <!-- ==================== 右侧面板 ==================== -->
+  <div class="right-panel">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📅 日历统计</span>
+      </div>
+      <div class="calendar-header">
+        <span class="calendar-month" id="calendarMonth"></span>
+        <div class="calendar-nav">
+          <button onclick="prevMonth()">◀</button>
+          <button onclick="goToToday()" title="今天">●</button>
+          <button onclick="nextMonth()">▶</button>
+        </div>
+      </div>
+      <div class="calendar-weekdays">
+        <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+      </div>
+      <div class="calendar-grid" id="calendarGrid"></div>
+
+      <div class="day-detail">
+        <h3 id="dayDetailTitle">📌 今日记录</h3>
+        <div class="day-detail-tasks" id="dayDetailTasks">
+          <div class="empty-state">点击日期查看详情</div>
+        </div>
+        <div class="day-detail-total" id="dayDetailTotal"></div>
+      </div>
+
+      <div class="month-stats">
+        <div class="month-stat-item">
+          <div class="month-stat-value" id="monthActiveDays">0</div>
+          <div class="month-stat-label">活跃天数</div>
+        </div>
+        <div class="month-stat-item">
+          <div class="month-stat-value" id="monthTotalTasks">0</div>
+          <div class="month-stat-label">完成次数</div>
+        </div>
+        <div class="month-stat-item">
+          <div class="month-stat-value" id="monthTotalTime">0h</div>
+          <div class="month-stat-label">总时长</div>
+        </div>
+      </div>
+
+      <div class="month-task-breakdown" id="monthTaskBreakdown"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// 数据层 — 通过本地 API 读写 data/tasks.json
+// ============================================================
+const API = '/api/data';
+
+// 任务颜色调色板
+const TASK_COLORS = [
+  '#ff6b6b', '#4fc3f7', '#ffd54f', '#69f0ae',
+  '#ff80ab', '#b39ddb', '#80cbc4', '#ffab40',
+  '#90caf9', '#ef9a9a', '#a5d6a7', '#fff176'
+];
+let colorIndex = 0;
+
+function nextColor() {
+  const c = TASK_COLORS[colorIndex % TASK_COLORS.length];
+  colorIndex++;
+  return c;
+}
+
+function getDateKey(date) {
+  const d = new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function todayKey() { return getDateKey(new Date()); }
+
+async function loadAll() {
+  try {
+    const res = await fetch(API);
+    if (!res.ok) throw new Error('load failed');
+    const data = await res.json();
+    // 兼容旧格式
+    if (!data.taskPool) data.taskPool = [];
+    if (!data.records) data.records = {};
+    return data;
+  } catch (e) {
+    console.error('加载数据失败:', e);
+    return { taskPool: [], records: {} };
+  }
+}
+
+async function saveAll(data) {
+  try {
+    await fetch(API, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  } catch (e) {
+    console.error('保存数据失败:', e);
+  }
+}
+
+// ============================================================
+// 状态
+// ============================================================
+let timerInterval = null;
+let timerSeconds = 0;
+let activeTaskId = null;
+let activeTaskName = '';
+let activeTaskColor = '';
+
+// ============================================================
+// 工具函数
+// ============================================================
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function fmtDuration(sec) {
+  if (sec <= 0) return '0s';
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h > 0) return `${h}h ${m}m ${s}s`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+function fmtShort(sec) {
+  if (sec <= 0) return '0m';
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+function fmtTime(iso) {
+  return new Date(iso).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' });
+}
+
+// ============================================================
+// 全屏
+// ============================================================
+function toggleFullscreen() {
+  const card = document.getElementById('timerCard');
+  card.classList.toggle('fullscreen');
+}
+
+// ESC 退出全屏
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const card = document.getElementById('timerCard');
+    if (card.classList.contains('fullscreen')) {
+      card.classList.remove('fullscreen');
+    }
+  }
+});
+
+// ============================================================
+// 任务操作
+// ============================================================
+async function createTask() {
+  const input = document.getElementById('taskNameInput');
+  const name = input.value.trim();
+  if (!name) {
+    input.focus();
+    input.style.borderColor = '#ff5252';
+    setTimeout(() => input.style.borderColor = '', 1500);
+    return;
+  }
+
+  const data = await loadAll();
+
+  data.taskPool.push({
+    id: uid(),
+    name: name,
+    color: nextColor(),
+    createdAt: new Date().toISOString()
+  });
+
+  await saveAll(data);
+  input.value = '';
+  input.focus();
+  renderAll();
+}
+
+async function deleteTaskFromPool(taskId) {
+  if (activeTaskId === taskId) return;
+
+  const data = await loadAll();
+  data.taskPool = data.taskPool.filter(t => t.id !== taskId);
+  await saveAll(data);
+  renderAll();
+}
+
+async function startTaskTimer(taskId) {
+  const data = await loadAll();
+  const task = data.taskPool.find(t => t.id === taskId);
+  if (!task) return;
+
+  // 如果已有任务在计时，先结束它
+  if (activeTaskId && timerSeconds >= 60) {
+    await saveRecord(activeTaskId, activeTaskName, timerSeconds);
+  }
+
+  activeTaskId = taskId;
+  activeTaskName = task.name;
+  activeTaskColor = task.color;
+  timerSeconds = 0;
+  updateTimerDisplay();
+
+  const startTime = Date.now();
+  timerInterval = setInterval(() => {
+    timerSeconds = Math.floor((Date.now() - startTime) / 1000);
+    updateTimerDisplay();
+  }, 200);
+
+  updateTimerUI();
+  renderAll();
+}
+
+async function endTimer() {
+  if (!activeTaskId) return;
+
+  clearInterval(timerInterval);
+  timerInterval = null;
+
+  if (timerSeconds >= 60) {
+    await saveRecord(activeTaskId, activeTaskName, timerSeconds, activeTaskColor);
+  }
+
+  activeTaskId = null;
+  activeTaskName = '';
+  activeTaskColor = '';
+  timerSeconds = 0;
+  updateTimerDisplay();
+  updateTimerUI();
+  renderAll();
+}
+
+async function saveRecord(taskId, name, seconds, color) {
+  const data = await loadAll();
+  const tk = todayKey();
+  if (!data.records[tk]) data.records[tk] = [];
+
+  data.records[tk].push({
+    id: uid(),
+    taskId: taskId,
+    name: name,
+    color: color || '#ff6b6b',
+    duration: seconds,
+    completedAt: new Date().toISOString()
+  });
+
+  await saveAll(data);
+}
+
+async function deleteRecord(recordId) {
+  const data = await loadAll();
+  const tk = todayKey();
+  if (data.records[tk]) {
+    data.records[tk] = data.records[tk].filter(r => r.id !== recordId);
+    if (data.records[tk].length === 0) delete data.records[tk];
+  }
+  await saveAll(data);
+  renderAll();
+}
+
+async function deleteRecordByDate(dateKey, recordId) {
+  const data = await loadAll();
+  if (data.records[dateKey]) {
+    data.records[dateKey] = data.records[dateKey].filter(r => r.id !== recordId);
+    if (data.records[dateKey].length === 0) delete data.records[dateKey];
+  }
+  await saveAll(data);
+  renderAll();
+}
+
+// ============================================================
+// 计时器 UI
+// ============================================================
+function updateTimerDisplay() {
+  const h = Math.floor(timerSeconds / 3600);
+  const m = Math.floor((timerSeconds % 3600) / 60);
+  const s = timerSeconds % 60;
+  document.getElementById('timerDisplay').textContent =
+    `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function updateTimerUI() {
+  const label = document.getElementById('timerLabel');
+  const activeEl = document.getElementById('timerActiveTask');
+  const btnEnd = document.getElementById('btnEnd');
+
+  if (activeTaskId) {
+    label.textContent = '正在计时';
+    activeEl.textContent = activeTaskName;
+    activeEl.style.color = activeTaskColor;
+    btnEnd.disabled = false;
+  } else {
+    label.textContent = '选择一个任务开始计时';
+    activeEl.textContent = '';
+    activeEl.style.color = '';
+    btnEnd.disabled = true;
+  }
+}
+
+// ============================================================
+// 渲染：任务池
+// ============================================================
+function renderTaskPool(data) {
+  const pool = data.taskPool;
+  const el = document.getElementById('taskPoolList');
+
+  if (pool.length === 0) {
+    el.innerHTML = '<div class="empty-state">还没有任务，创建一个吧 📝</div>';
+    return;
+  }
+
+  el.innerHTML = pool.map(t => {
+    const isActive = t.id === activeTaskId;
+    const cls = 'task-pool-item' + (isActive ? ' active' : '');
+    const borderColor = isActive ? activeTaskColor : 'transparent';
+
+    const statusHtml = isActive
+      ? '<span class="task-pool-status status-running">计时中</span>'
+      : `<button class="btn btn-start-task" onclick="startTaskTimer('${t.id}')">▶ 开始</button>`;
+
+    return `
+      <div class="${cls}" style="border-color:${borderColor}">
+        <span class="task-pool-color" style="background:${t.color}"></span>
+        <span class="task-pool-name">${escHtml(t.name)}</span>
+        <div class="task-pool-right">
+          ${statusHtml}
+          <button class="btn-delete" onclick="deleteTaskFromPool('${t.id}')" ${isActive ? 'disabled' : ''} title="删除">✕</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============================================================
+// 渲染：圆环图 + 记录列表
+// ============================================================
+function renderRingChart(data) {
+  const tk = todayKey();
+  const records = (data.records && data.records[tk]) ? data.records[tk] : [];
+  const area = document.getElementById('ringChartArea');
+
+  if (records.length === 0) {
+    area.innerHTML = '<div class="ring-empty">暂无记录，开始计时吧 ⏱</div>';
+    document.getElementById('todayTaskCount').textContent = '0';
+    document.getElementById('todayTotalTime').textContent = '0m';
+    document.getElementById('recordsList').innerHTML = '<div class="empty-state">暂无记录</div>';
+    return;
+  }
+
+  // 按 taskId 合并统计
+  const taskStats = {};
+  let colorIndex = {};
+  records.forEach(r => {
+    const key = r.taskId || r.name;
+    if (!taskStats[key]) {
+      taskStats[key] = { name: r.name, color: r.color, totalSec: 0 };
+    }
+    taskStats[key].totalSec += r.duration;
+  });
+
+  const entries = Object.values(taskStats).sort((a, b) => b.totalSec - a.totalSec);
+  const totalSec = entries.reduce((s, e) => s + e.totalSec, 0);
+
+  // 汇总
+  document.getElementById('todayTaskCount').textContent = records.length;
+  document.getElementById('todayTotalTime').textContent = fmtShort(totalSec);
+
+  // --- 圆环图 SVG ---
+  const R = 75;       // 半径
+  const SW = 22;      // 环宽
+  const C = 2 * Math.PI * R; // 周长 ≈ 471.24
+  const size = 220;
+
+  let svg = `<svg class="ring-chart-svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`;
+
+  // 背景环
+  svg += `<circle cx="${size/2}" cy="${size/2}" r="${R}" fill="none"
+    stroke="rgba(255,255,255,0.06)" stroke-width="${SW}"/>`;
+
+  // 各任务弧段
+  let offset = 0; // 从 0 开始（12 点钟方向，因为 rotate(-90)）
+  entries.forEach(e => {
+    const pct = e.totalSec / totalSec;
+    const len = pct * C;
+    svg += `<circle cx="${size/2}" cy="${size/2}" r="${R}" fill="none"
+      stroke="${e.color}" stroke-width="${SW}"
+      stroke-linecap="butt"
+      stroke-dasharray="${len} ${C - len}"
+      stroke-dashoffset="${-offset}"
+      transform="rotate(-90 ${size/2} ${size/2})"
+      style="transition: all 0.5s ease"/>`;
+    offset += len;
+  });
+
+  // 中心文字
+  svg += `<text x="${size/2}" y="${size/2 - 6}" text-anchor="middle" class="ring-center-value">${fmtShort(totalSec)}</text>`;
+  svg += `<text x="${size/2}" y="${size/2 + 18}" text-anchor="middle" class="ring-center-text">${records.length} 次</text>`;
+  svg += `</svg>`;
+
+  // --- 图例 ---
+  let legend = '<div class="ring-legend">';
+  entries.forEach(e => {
+    const pct = Math.round((e.totalSec / totalSec) * 100);
+    legend += `
+      <div class="ring-legend-item">
+        <span class="ring-legend-dot" style="background:${e.color}"></span>
+        <span class="ring-legend-name">${escHtml(e.name)}</span>
+        <span class="ring-legend-time">${fmtDuration(e.totalSec)} · ${pct}%</span>
+      </div>`;
+  });
+  legend += '</div>';
+
+  area.innerHTML = `<div class="ring-chart-wrap">${svg}${legend}</div>`;
+
+  // --- 记录列表 ---
+  const listEl = document.getElementById('recordsList');
+  listEl.innerHTML = records.map(r => `
+    <div class="record-item">
+      <div>
+        <div class="record-name">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${r.color};margin-right:6px;"></span>
+          ${escHtml(r.name)}
+        </div>
+        <div class="record-meta">${fmtTime(r.completedAt)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span class="record-duration">${fmtDuration(r.duration)}</span>
+        <button class="btn-delete" onclick="deleteRecord('${r.id}')" title="删除">✕</button>
+      </div>
+    </div>
+  `).reverse().join('');
+}
+
+// ============================================================
+// 日历
+// ============================================================
+let calYear, calMonth;
+let selectedDateKey = todayKey();
+
+function initCal() {
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth() + 1;
+}
+
+function prevMonth() { calMonth--; if (calMonth < 1) { calMonth = 12; calYear--; } renderAll(); }
+function nextMonth() { calMonth++; if (calMonth > 12) { calMonth = 1; calYear++; } renderAll(); }
+function goToToday() {
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth() + 1;
+  selectedDateKey = todayKey();
+  renderAll();
+}
+
+function renderCalendar(data) {
+  const tk = todayKey();
+  document.getElementById('calendarMonth').textContent = `${calYear}年${calMonth}月`;
+
+  const firstDay = new Date(calYear, calMonth - 1, 1);
+  const daysInMonth = new Date(calYear, calMonth, 0).getDate();
+  const startDow = firstDay.getDay();
+  const prevLast = new Date(calYear, calMonth - 1, 0).getDate();
+  const grid = document.getElementById('calendarGrid');
+  let html = '';
+
+  for (let i = startDow - 1; i >= 0; i--) {
+    html += `<div class="calendar-day other-month">${prevLast - i}</div>`;
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dk = `${calYear}-${String(calMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayRecs = data.records && data.records[dk] ? data.records[dk] : [];
+    const hasRec = dayRecs.length > 0;
+    const isToday = dk === tk;
+    const isSel = dk === selectedDateKey;
+
+    let cls = 'calendar-day';
+    if (hasRec) cls += ' has-records';
+    if (isToday) cls += ' today';
+    if (isSel) cls += ' selected';
+
+    html += `<div class="${cls}" onclick="selectDate('${dk}')">${d}</div>`;
+  }
+
+  const total = startDow + daysInMonth;
+  const rem = total % 7 === 0 ? 0 : 7 - (total % 7);
+  for (let d = 1; d <= rem; d++) {
+    html += `<div class="calendar-day other-month">${d}</div>`;
+  }
+
+  grid.innerHTML = html;
+  renderMonthStats(data);
+  renderMonthTaskBreakdown(data);
+  renderDayDetail(data);
+}
+
+function selectDate(dk) {
+  selectedDateKey = dk;
+  renderAll();
+}
+
+function renderMonthStats(data) {
+  const prefix = `${calYear}-${String(calMonth).padStart(2,'0')}-`;
+  let days = 0, tasks = 0, sec = 0;
+
+  if (data.records) {
+    for (const [k, v] of Object.entries(data.records)) {
+      if (k.startsWith(prefix) && v.length > 0) {
+        days++;
+        tasks += v.length;
+        sec += v.reduce((s, r) => s + (r.duration || 0), 0);
+      }
+    }
+  }
+
+  document.getElementById('monthActiveDays').textContent = days;
+  document.getElementById('monthTotalTasks').textContent = tasks;
+  document.getElementById('monthTotalTime').textContent = fmtShort(sec);
+}
+
+function renderMonthTaskBreakdown(data) {
+  const prefix = `${calYear}-${String(calMonth).padStart(2,'0')}-`;
+  const taskMap = {};
+
+  if (data.records) {
+    for (const [k, v] of Object.entries(data.records)) {
+      if (k.startsWith(prefix)) {
+        v.forEach(r => {
+          const key = r.taskId || r.name;
+          if (!taskMap[key]) {
+            taskMap[key] = { name: r.name, color: r.color || '#ff6b6b', totalSec: 0 };
+          }
+          taskMap[key].totalSec += r.duration || 0;
+        });
+      }
+    }
+  }
+
+  const entries = Object.values(taskMap).sort((a, b) => b.totalSec - a.totalSec);
+  const el = document.getElementById('monthTaskBreakdown');
+
+  if (entries.length === 0) {
+    el.innerHTML = '';
+    return;
+  }
+
+  const totalSec = entries.reduce((s, e) => s + e.totalSec, 0);
+
+  let html = '<h3>📋 本月任务统计</h3>';
+  entries.forEach(e => {
+    const pct = totalSec > 0 ? Math.round((e.totalSec / totalSec) * 100) : 0;
+    html += `
+      <div class="month-task-row">
+        <span class="month-task-row-name">${escHtml(e.name)}</span>
+        <span class="month-task-row-time">${fmtDuration(e.totalSec)}</span>
+        <div class="month-task-bar-wrap">
+          <div class="month-task-bar-fill" style="width:${pct}%;background:${e.color}"></div>
+        </div>
+      </div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+function renderDayDetail(data) {
+  const dayRecs = (data.records && data.records[selectedDateKey]) ? data.records[selectedDateKey] : [];
+  const isToday = selectedDateKey === todayKey();
+  const parts = selectedDateKey.split('-');
+
+  document.getElementById('dayDetailTitle').textContent = isToday
+    ? '📌 今日记录'
+    : `📌 ${parts[0]}年${parseInt(parts[1])}月${parseInt(parts[2])}日`;
+
+  const el = document.getElementById('dayDetailTasks');
+  if (dayRecs.length === 0) {
+    el.innerHTML = '<div class="empty-state">当天无记录</div>';
+    document.getElementById('dayDetailTotal').innerHTML = '';
+    return;
+  }
+
+  el.innerHTML = dayRecs.map(r => `
+    <div class="record-item">
+      <div>
+        <div class="record-name">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${r.color || '#ff6b6b'};margin-right:6px;"></span>
+          ${escHtml(r.name)}
+        </div>
+        <div class="record-meta">${fmtTime(r.completedAt)}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span class="record-duration">${fmtDuration(r.duration)}</span>
+        ${isToday ? `<button class="btn-delete" onclick="deleteRecordByDate('${selectedDateKey}', '${r.id}')" title="删除">✕</button>` : ''}
+      </div>
+    </div>
+  `).reverse().join('');
+
+  const totalSec = dayRecs.reduce((s, r) => s + r.duration, 0);
+  document.getElementById('dayDetailTotal').innerHTML = `合计：<strong>${fmtDuration(totalSec)}</strong> · ${dayRecs.length} 次`;
+}
+
+// ============================================================
+// 全局渲染
+// ============================================================
+async function renderAll() {
+  const data = await loadAll();
+  renderTaskPool(data);
+  updateTimerUI();
+  renderRingChart(data);
+  renderCalendar(data);
+}
+
+// ============================================================
+// 生命周期
+// ============================================================
+window.addEventListener('beforeunload', () => {
+  if (activeTaskId && timerSeconds >= 60) {
+    fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'saveRecord', taskId: activeTaskId, name: activeTaskName, duration: timerSeconds, color: activeTaskColor }),
+      keepalive: true
+    });
+  }
+});
+
+// 心跳
+setInterval(() => {
+  fetch('/api/heartbeat').catch(() => {});
+}, 20000);
+
+// 回车创建
+document.getElementById('taskNameInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); createTask(); }
+});
+
+// 初始化
+initCal();
+selectedDateKey = todayKey();
+renderAll();
+</script>
+</body>
+</html>
