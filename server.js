@@ -22,6 +22,8 @@ const MIME = {
   '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
   '.ico': 'image/x-icon',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
 };
 
 function readJSON(filepath) {
@@ -163,7 +165,14 @@ const server = http.createServer((req, res) => {
         res.end('Server Error');
       }
     } else {
-      res.writeHead(200, { 'Content-Type': contentType });
+      const headers = { 'Content-Type': contentType };
+      // HTML 禁用缓存，确保每次拿到最新版本
+      if (ext === '.html') {
+        headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+        headers['Pragma'] = 'no-cache';
+        headers['Expires'] = '0';
+      }
+      res.writeHead(200, headers);
       res.end(content);
     }
   });

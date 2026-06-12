@@ -3,20 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>🍅 番茄钟 - 任务计时器</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* ===== 模糊背景 ===== */
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
   min-height: 100vh;
   color: #e0e0e0;
   padding: 20px;
+  position: relative;
+  background: #0a0a14;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: -30px; left: -30px; right: -30px; bottom: -30px;
+  background: url('bg.jpg') center/cover no-repeat;
+  filter: blur(18px) brightness(0.35);
+  z-index: -1;
 }
 
 .container {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
   display: flex;
   gap: 24px;
@@ -31,12 +45,15 @@ body {
   gap: 20px;
 }
 
+/* ===== 毛玻璃卡片 ===== */
 .card {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 16px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 18px;
   padding: 24px;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
 }
 
 .card-header {
@@ -202,7 +219,8 @@ body {
   border-radius: 0;
   border: none;
   background: rgba(10,10,20,0.97);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -342,8 +360,9 @@ body {
 .empty-state { text-align: center; color: #555; padding: 28px 0; font-size: 14px; }
 
 /* ===== 右侧面板 ===== */
-.right-panel { width: 370px; flex-shrink: 0; }
+.right-panel { width: 450px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px; }
 
+/* ===== 日历 ===== */
 .calendar-header {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 14px;
@@ -390,7 +409,7 @@ body {
   border-top: 1px solid rgba(255,255,255,0.07);
 }
 .day-detail h3 { font-size: 13px; color: #999; margin-bottom: 10px; }
-.day-detail-tasks { max-height: 180px; overflow-y: auto; }
+.day-detail-tasks { max-height: 140px; overflow-y: auto; }
 .day-detail-tasks .record-item { padding: 8px 0; }
 .day-detail-total { text-align: center; padding-top: 10px; font-size: 13px; color: #777; }
 .day-detail-total strong { color: #ff6b6b; font-size: 17px; }
@@ -447,8 +466,95 @@ body {
   transition: width 0.5s ease;
 }
 
+/* ===== 🆕 折线图区域 ===== */
+.trend-chart-area {
+  position: relative;
+  width: 100%;
+  min-height: 280px;
+}
+
+.trend-chart-area svg {
+  width: 100%;
+  display: block;
+}
+
+.trend-chart-empty {
+  text-align: center;
+  color: #666;
+  padding: 60px 0;
+  font-size: 15px;
+}
+
+/* ===== 🆕 任务滚轮 — 统一单圆设计 ===== */
+.wheel-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.wheel-wrapper {
+  position: relative;
+  width: 240px;
+  height: 240px;
+  cursor: grab;
+  user-select: none;
+}
+
+.wheel-wrapper:active { cursor: grabbing; }
+
+/* 锁定状态 */
+.wheel-wrapper.locked {
+  cursor: default;
+}
+
+/* 指针三角 — 指向圆环外沿的任务圆点 */
+.wheel-pointer {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 14px solid #ff6b6b;
+  filter: drop-shadow(0 0 6px rgba(255,107,107,0.7));
+}
+
+/* 统一 SVG 圆 */
+.wheel-svg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 240px; height: 240px;
+  pointer-events: none;
+}
+
+.wheel-hint {
+  font-size: 13px;
+  color: #666;
+  text-align: center;
+}
+
+/* ===== 趋势面板内部：上图下轮 ===== */
+.trend-panel-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+}
+
+.trend-chart-col {
+  width: 100%;
+}
+
+.trend-wheel-col {
+  flex-shrink: 0;
+}
+
 /* ===== 响应式 ===== */
-@media (max-width: 800px) {
+@media (max-width: 900px) {
   .container { flex-direction: column; }
   .right-panel { width: 100%; }
   .timer-display { font-size: 54px; }
@@ -514,6 +620,7 @@ body {
 
   <!-- ==================== 右侧面板 ==================== -->
   <div class="right-panel">
+    <!-- 4. 日历统计 -->
     <div class="card">
       <div class="card-header">
         <span class="card-title">📅 日历统计</span>
@@ -556,6 +663,32 @@ body {
 
       <div class="month-task-breakdown" id="monthTaskBreakdown"></div>
     </div>
+
+    <!-- 5. 🆕 学习趋势 + 任务滚轮 -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📈 学习趋势</span>
+        <span style="font-size:13px;color:#888;" id="trendChartLabel">本月每日学习时长</span>
+      </div>
+      <div class="trend-panel-inner">
+        <!-- 左侧：折线图 -->
+        <div class="trend-chart-col">
+          <div class="trend-chart-area" id="trendChartArea">
+            <div class="trend-chart-empty">暂无数据</div>
+          </div>
+        </div>
+        <!-- 右侧：任务滚轮 -->
+        <div class="trend-wheel-col">
+          <div class="wheel-section">
+            <div class="wheel-wrapper" id="wheelWrapper">
+              <div class="wheel-pointer"></div>
+              <div class="wheel-svg" id="wheelSvg"></div>
+            </div>
+            <div class="wheel-hint">🖱 滚轮切换任务 · 点击锁定 / 解锁</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -569,7 +702,10 @@ const API = '/api/data';
 const TASK_COLORS = [
   '#ff6b6b', '#4fc3f7', '#ffd54f', '#69f0ae',
   '#ff80ab', '#b39ddb', '#80cbc4', '#ffab40',
-  '#90caf9', '#ef9a9a', '#a5d6a7', '#fff176'
+  '#90caf9', '#ef9a9a', '#a5d6a7', '#fff176',
+  '#e57373', '#ba68c8', '#9575cd', '#7986cb',
+  '#64b5f6', '#4dd0e1', '#4db6ac', '#81c784',
+  '#aed581', '#dce775', '#ffb74d', '#ff8a65'
 ];
 let colorIndex = 0;
 
@@ -590,7 +726,6 @@ async function loadAll() {
     const res = await fetch(API);
     if (!res.ok) throw new Error('load failed');
     const data = await res.json();
-    // 兼容旧格式
     if (!data.taskPool) data.taskPool = [];
     if (!data.records) data.records = {};
     return data;
@@ -620,6 +755,12 @@ let timerSeconds = 0;
 let activeTaskId = null;
 let activeTaskName = '';
 let activeTaskColor = '';
+
+// 🆕 滚轮 & 折线图状态
+let wheelAngle = 0;              // 当前旋转角度（度）
+let wheelLocked = false;         // 滚轮是否锁定
+let wheelActiveItemIndex = 0;    // 指针指向的项目索引（0 = 全部, 1+ = 具体任务）
+let lastRenderData = null;       // 缓存最近一次数据，供滚轮事件使用
 
 // ============================================================
 // 工具函数
@@ -664,7 +805,6 @@ function toggleFullscreen() {
   card.classList.toggle('fullscreen');
 }
 
-// ESC 退出全屏
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     const card = document.getElementById('timerCard');
@@ -688,7 +828,6 @@ async function createTask() {
   }
 
   const data = await loadAll();
-
   data.taskPool.push({
     id: uid(),
     name: name,
@@ -706,8 +845,22 @@ async function deleteTaskFromPool(taskId) {
   if (activeTaskId === taskId) return;
 
   const data = await loadAll();
+  // 检查被删任务在滚轮中的位置（index 从 1 开始，0 是"全部"）
+  const delIdx = data.taskPool.findIndex(t => t.id === taskId);
+  const wheelDelIdx = delIdx >= 0 ? delIdx + 1 : -1;
+
   data.taskPool = data.taskPool.filter(t => t.id !== taskId);
   await saveAll(data);
+
+  // 如果正在查看被删任务，重置到"全部"；否则修正 index（因为少了一项）
+  if (wheelActiveItemIndex === wheelDelIdx && wheelDelIdx > 0) {
+    wheelLocked = false;
+    wheelActiveItemIndex = 0;
+  } else if (wheelActiveItemIndex > wheelDelIdx && wheelDelIdx > 0) {
+    // 当前指向的任务在被删任务之后，需要往前挪一位
+    wheelActiveItemIndex--;
+  }
+
   renderAll();
 }
 
@@ -716,7 +869,6 @@ async function startTaskTimer(taskId) {
   const task = data.taskPool.find(t => t.id === taskId);
   if (!task) return;
 
-  // 如果已有任务在计时，先结束它
   if (activeTaskId && timerSeconds >= 60) {
     await saveRecord(activeTaskId, activeTaskName, timerSeconds);
   }
@@ -873,9 +1025,7 @@ function renderRingChart(data) {
     return;
   }
 
-  // 按 taskId 合并统计
   const taskStats = {};
-  let colorIndex = {};
   records.forEach(r => {
     const key = r.taskId || r.name;
     if (!taskStats[key]) {
@@ -887,24 +1037,17 @@ function renderRingChart(data) {
   const entries = Object.values(taskStats).sort((a, b) => b.totalSec - a.totalSec);
   const totalSec = entries.reduce((s, e) => s + e.totalSec, 0);
 
-  // 汇总
   document.getElementById('todayTaskCount').textContent = records.length;
   document.getElementById('todayTotalTime').textContent = fmtShort(totalSec);
 
   // --- 圆环图 SVG ---
-  const R = 75;       // 半径
-  const SW = 22;      // 环宽
-  const C = 2 * Math.PI * R; // 周长 ≈ 471.24
-  const size = 220;
+  const R = 75, SW = 22, C = 2 * Math.PI * R, size = 220;
 
   let svg = `<svg class="ring-chart-svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`;
-
-  // 背景环
   svg += `<circle cx="${size/2}" cy="${size/2}" r="${R}" fill="none"
     stroke="rgba(255,255,255,0.06)" stroke-width="${SW}"/>`;
 
-  // 各任务弧段
-  let offset = 0; // 从 0 开始（12 点钟方向，因为 rotate(-90)）
+  let offset = 0;
   entries.forEach(e => {
     const pct = e.totalSec / totalSec;
     const len = pct * C;
@@ -918,12 +1061,10 @@ function renderRingChart(data) {
     offset += len;
   });
 
-  // 中心文字
   svg += `<text x="${size/2}" y="${size/2 - 6}" text-anchor="middle" class="ring-center-value">${fmtShort(totalSec)}</text>`;
   svg += `<text x="${size/2}" y="${size/2 + 18}" text-anchor="middle" class="ring-center-text">${records.length} 次</text>`;
   svg += `</svg>`;
 
-  // --- 图例 ---
   let legend = '<div class="ring-legend">';
   entries.forEach(e => {
     const pct = Math.round((e.totalSec / totalSec) * 100);
@@ -938,7 +1079,6 @@ function renderRingChart(data) {
 
   area.innerHTML = `<div class="ring-chart-wrap">${svg}${legend}</div>`;
 
-  // --- 记录列表 ---
   const listEl = document.getElementById('recordsList');
   listEl.innerHTML = records.map(r => `
     <div class="record-item">
@@ -1126,14 +1266,355 @@ function renderDayDetail(data) {
 }
 
 // ============================================================
+// 🆕 折线图：本月每日学习时长
+// ============================================================
+function getMonthDailyData(data, year, month, taskId) {
+  const prefix = `${year}-${String(month).padStart(2,'0')}-`;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const days = [];
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dk = prefix + String(d).padStart(2, '0');
+    const recs = (data.records && data.records[dk]) ? data.records[dk] : [];
+
+    let totalSec = 0;
+    if (taskId) {
+      totalSec = recs.filter(r => r.taskId === taskId).reduce((s, r) => s + r.duration, 0);
+    } else {
+      totalSec = recs.reduce((s, r) => s + r.duration, 0);
+    }
+    days.push({ day: d, dateKey: dk, totalSec });
+  }
+  return days;
+}
+
+function renderTrendLineChart(data) {
+  const area = document.getElementById('trendChartArea');
+  const labelEl = document.getElementById('trendChartLabel');
+
+  // 根据滚轮指针位置决定查看哪个任务
+  // wheelActiveItemIndex: 0 = 全部, 1+ = data.taskPool[index-1]
+  let taskId = null;
+  let lineColor = '#ff6b6b';
+  let chartLabel = '本月每日学习时长';
+
+  if (wheelActiveItemIndex > 0) {
+    const task = data.taskPool[wheelActiveItemIndex - 1];
+    if (task) {
+      taskId = task.id;
+      lineColor = task.color;
+      chartLabel = `「${task.name}」每日时长`;
+    }
+  }
+  labelEl.textContent = chartLabel;
+
+  const dailyData = getMonthDailyData(data, calYear, calMonth, taskId);
+
+  const maxSec = Math.max(...dailyData.map(d => d.totalSec), 1);
+  const hasData = dailyData.some(d => d.totalSec > 0);
+
+  if (!hasData) {
+    const msg = taskId ? '该任务本月暂无记录 📊' : '本月暂无记录 📊';
+    area.innerHTML = `<div class="trend-chart-empty">${msg}</div>`;
+    return;
+  }
+
+  // SVG 参数 — 更大的画布
+  const W = 520, H = 300;
+  const padL = 52, padR = 20, padT = 22, padB = 38;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  const n = dailyData.length;
+
+  // 计算 Y 轴最大值
+  const maxHours = maxSec / 3600;
+  let yMax;
+  if (maxHours <= 0.5) yMax = 0.5;
+  else if (maxHours <= 1) yMax = 1;
+  else if (maxHours <= 2) yMax = 2;
+  else if (maxHours <= 4) yMax = 4;
+  else if (maxHours <= 6) yMax = 6;
+  else if (maxHours <= 8) yMax = 8;
+  else if (maxHours <= 12) yMax = 12;
+  else yMax = Math.ceil(maxHours / 2) * 2;
+
+  const ySteps = yMax <= 1 ? 2 : (yMax <= 4 ? 4 : Math.min(Math.ceil(yMax), 6));
+
+  function xPos(dayIndex) { return padL + (dayIndex / (n - 1 || 1)) * plotW; }
+  function yPos(sec) { return padT + plotH - (sec / (yMax * 3600)) * plotH; }
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+
+  // 渐变定义
+  svg += `<defs>
+    <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${lineColor}" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="${lineColor}" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>`;
+
+  // 水平网格线 + Y 轴标签
+  for (let i = 0; i <= ySteps; i++) {
+    const val = (yMax / ySteps) * i;
+    const y = yPos(val * 3600);
+    svg += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}"
+      stroke="rgba(255,255,255,0.07)" stroke-width="1"/>`;
+    svg += `<text x="${padL - 8}" y="${y + 5}" text-anchor="end"
+      fill="#777" font-size="12">${val}h</text>`;
+  }
+
+  // X 轴标签
+  const maxLabels = Math.min(n, 15);
+  const labelStep = Math.max(1, Math.floor(n / maxLabels));
+  for (let i = 0; i < n; i += labelStep) {
+    const d = dailyData[i];
+    const x = xPos(i);
+    svg += `<text x="${x}" y="${H - 6}" text-anchor="middle"
+      fill="#777" font-size="12">${d.day}</text>`;
+  }
+  // 始终显示最后一天
+  if ((n - 1) % labelStep !== 0 && n > 1) {
+    const last = dailyData[n - 1];
+    svg += `<text x="${xPos(n - 1)}" y="${H - 6}" text-anchor="middle"
+      fill="#777" font-size="12">${last.day}</text>`;
+  }
+
+  // 数据点
+  const points = dailyData.map((d, i) => ({ x: xPos(i), y: yPos(d.totalSec), sec: d.totalSec }));
+
+  // 填充区域
+  if (points.length > 1) {
+    let areaPath = `M ${points[0].x} ${yPos(0)} `;
+    for (const p of points) areaPath += `L ${p.x} ${p.y} `;
+    areaPath += `L ${points[points.length - 1].x} ${yPos(0)} Z`;
+    svg += `<path d="${areaPath}" fill="url(#lineGrad)"/>`;
+  }
+
+  // 折线（平滑曲线）
+  if (points.length > 1) {
+    let linePath = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      const prev = points[i - 1];
+      const curr = points[i];
+      const cpx1 = prev.x + (curr.x - prev.x) * 0.5;
+      const cpx2 = curr.x - (curr.x - prev.x) * 0.5;
+      linePath += ` C ${cpx1} ${prev.y}, ${cpx2} ${curr.y}, ${curr.x} ${curr.y}`;
+    }
+    svg += `<path d="${linePath}" fill="none" stroke="${lineColor}"
+      stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
+
+  // 数据点
+  for (const p of points) {
+    if (p.sec > 0) {
+      svg += `<circle cx="${p.x}" cy="${p.y}" r="4.5" fill="${lineColor}"
+        stroke="rgba(0,0,0,0.5)" stroke-width="2"/>`;
+    }
+  }
+
+  // 今天标记线
+  const now = new Date();
+  if (calYear === now.getFullYear() && calMonth === now.getMonth() + 1) {
+    const today = now.getDate();
+    if (today >= 1 && today <= n) {
+      const tx = xPos(today - 1);
+      svg += `<line x1="${tx}" y1="${padT}" x2="${tx}" y2="${padT + plotH}"
+        stroke="rgba(255,255,255,0.15)" stroke-width="1.5" stroke-dasharray="5,4"/>`;
+      svg += `<text x="${tx}" y="${padT - 4}" text-anchor="middle"
+        fill="#999" font-size="11">今天</text>`;
+    }
+  }
+
+  svg += `</svg>`;
+  area.innerHTML = svg;
+}
+
+// ============================================================
+// 🆕 任务滚轮 — 统一单圆 SVG（外环=滚轮，内区=显示）
+// ============================================================
+function getWheelItems(tasks) {
+  return [
+    { id: '__all__', name: '全部任务', color: '#ffffff' },
+    ...tasks
+  ];
+}
+
+function buildWheelSVG(n, items, activeIndex, locked) {
+  const svgEl = document.getElementById('wheelSvg');
+  const cx = 120, cy = 120;
+  // 圆主体：r=105, stroke=14 → 环带 r=98~112
+  const rBody = 105, ringW = 14;
+  const rInner = rBody - ringW / 2; // 98
+  const rOuter = rBody + ringW / 2; // 112
+  const dotR = rOuter;              // 任务圆点放在外环外沿上
+
+  const angleStep = 360 / n;
+  wheelAngle = -wheelActiveItemIndex * angleStep;
+
+  let svg = `<svg width="240" height="240" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">`;
+
+  // 光晕滤镜（必须放在最前面）
+  svg += `<defs>
+    <filter id="dotGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>`;
+
+  // 圆形主体（填充 + 厚外环描边）— 这就是"一个圆"
+  svg += `<circle cx="${cx}" cy="${cy}" r="${rBody}" fill="rgba(0,0,0,0.5)"
+    stroke="rgba(255,255,255,0.12)" stroke-width="${ringW}"/>`;
+
+  // 内沿细线（分隔环带和显示区）
+  svg += `<circle cx="${cx}" cy="${cy}" r="${rInner}" fill="none"
+    stroke="rgba(255,255,255,0.06)" stroke-width="1"/>`;
+
+  // 外沿细线
+  svg += `<circle cx="${cx}" cy="${cy}" r="${rOuter}" fill="none"
+    stroke="rgba(255,255,255,0.08)" stroke-width="1"/>`;
+
+  // 刻度线（跨环带）
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * 2 * Math.PI - Math.PI / 2;
+    const x1 = cx + rInner * Math.cos(a);
+    const y1 = cy + rInner * Math.sin(a);
+    const x2 = cx + rOuter * Math.cos(a);
+    const y2 = cy + rOuter * Math.sin(a);
+    svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
+      stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>`;
+  }
+
+  // 任务圆点（放在外环外沿上）
+  for (let i = 0; i < n; i++) {
+    const baseDeg = i * angleStep;
+    const a = (baseDeg + wheelAngle) * Math.PI / 180;
+    const dx = cx + dotR * Math.sin(a);
+    const dy = cy - dotR * Math.cos(a);
+
+    // 距离顶部的弧度距离（顶部 = -π/2）
+    const dist = Math.abs(a - Math.PI * 1.5);
+    const distN = Math.min(dist, 2 * Math.PI - dist);
+    const opacity = distN > Math.PI * 0.65 ? 0.25 : 1;
+
+    const isActive = (i === activeIndex);
+    const item = items[i];
+    const r = isActive ? 8 : 5;
+    const glow = isActive
+      ? ` filter="url(#dotGlow)" stroke="${item.color}" stroke-width="2" stroke-opacity="0.6"`
+      : '';
+
+    svg += `<circle cx="${dx}" cy="${dy}" r="${r}" fill="${item.color}"
+      opacity="${opacity}"${glow}/>`;
+  }
+
+  // === 中心显示区 ===
+  const activeItem = items[activeIndex];
+  const rawName = escHtml(activeItem.name);
+  const displayName = rawName.length > 6
+    ? rawName.slice(0, 6) + '…' : rawName;
+
+  // 锁图标
+  svg += `<text x="${cx}" y="${cy - 16}" text-anchor="middle"
+    fill="${locked ? '#fff' : '#555'}" font-size="22"
+    opacity="${locked ? '0.9' : '0.35'}">${locked ? '🔒' : '🔓'}</text>`;
+
+  // 彩色圆点（仅非"全部"任务时显示）
+  if (activeItem.id !== '__all__') {
+    svg += `<circle cx="${cx}" cy="${cy + 4}" r="6" fill="${activeItem.color}"
+      opacity="0.9"/>`;
+  }
+
+  // 任务名
+  const nameY = activeItem.id === '__all__' ? cy + 22 : cy + 28;
+  svg += `<text x="${cx}" y="${nameY}" text-anchor="middle"
+    fill="#fff" font-size="26" font-weight="800"
+    letter-spacing="1">${displayName}</text>`;
+
+  svg += `</svg>`;
+  svgEl.innerHTML = svg;
+}
+
+function renderWheel(data) {
+  const tasks = data.taskPool;
+  const items = getWheelItems(tasks);
+  const wrapper = document.getElementById('wheelWrapper');
+  const n = items.length;
+
+  if (wheelLocked) {
+    wrapper.classList.add('locked');
+  } else {
+    wrapper.classList.remove('locked');
+  }
+
+  wheelActiveItemIndex = ((wheelActiveItemIndex % n) + n) % n;
+  buildWheelSVG(n, items, wheelActiveItemIndex, wheelLocked);
+}
+
+// 滚轮事件
+let wheelAccum = 0;
+let wheelLastDir = 0;
+
+function setupWheelEvents() {
+  const wrapper = document.getElementById('wheelWrapper');
+
+  wrapper.addEventListener('wheel', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (wheelLocked) return;
+
+    const data = lastRenderData || await loadAll();
+    const items = getWheelItems(data.taskPool);
+    const n = items.length;
+    if (n <= 1) return;
+
+    const dir = e.deltaY > 0 ? 1 : (e.deltaY < 0 ? -1 : 0);
+    if (dir === 0) return;
+
+    // 方向改变时重置累积，防止反向"回弹"
+    if (dir !== wheelLastDir) {
+      wheelAccum = 0;
+      wheelLastDir = dir;
+    }
+
+    wheelAccum += Math.abs(e.deltaY);
+    const threshold = 100; // 典型鼠标一格 ≈ 100
+
+    if (wheelAccum >= threshold) {
+      wheelActiveItemIndex = (wheelActiveItemIndex + dir + n) % n;
+      wheelAccum -= threshold;      // 减掉一格，保留余量
+      // 防止余量堆积过多（快速滚轮时最多切 2 格）
+      if (wheelAccum >= threshold) {
+        wheelActiveItemIndex = (wheelActiveItemIndex + dir + n) % n;
+        wheelAccum -= threshold;
+      }
+      // 丢弃多余残留
+      wheelAccum = wheelAccum % threshold;
+      renderWheel(data);
+      renderTrendLineChart(data);
+    }
+  }, { passive: false });
+
+  // 点击切换锁定
+  wrapper.addEventListener('click', async (e) => {
+    wheelLocked = !wheelLocked;
+    const data = lastRenderData || await loadAll();
+    renderWheel(data);
+  });
+}
+
+// ============================================================
 // 全局渲染
 // ============================================================
 async function renderAll() {
   const data = await loadAll();
+  lastRenderData = data; // 缓存供滚轮事件使用
+  colorIndex = data.taskPool.length;
   renderTaskPool(data);
   updateTimerUI();
   renderRingChart(data);
   renderCalendar(data);
+  renderWheel(data);
+  renderTrendLineChart(data);
 }
 
 // ============================================================
@@ -1163,6 +1644,7 @@ document.getElementById('taskNameInput').addEventListener('keydown', (e) => {
 // 初始化
 initCal();
 selectedDateKey = todayKey();
+setupWheelEvents();
 renderAll();
 </script>
 </body>
